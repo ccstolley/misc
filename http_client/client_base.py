@@ -3,6 +3,7 @@ Base class for HTTP-based clients.
 """
 
 import httplib
+import urllib
 import socket
 import select
 import logging
@@ -42,7 +43,6 @@ class ClientBase(object):
         but I'm really not sure. urllib seems to work ok, so this
         function attempts to replicate the same functionality.
         """
-        import urllib
         port = ""
         if self.use_ssl:
             pfx = "https"
@@ -99,6 +99,8 @@ class ClientBase(object):
         except socket.sslerror, e:
             self.log.error("read() failed due to sslerror \"%s\"", e)
             raise
+        finally:
+            connection.close()
         if (response.status != 200):
             self.log.error("HTTP %d: %s", response.status, resp)
             raise ClientError(resp)
