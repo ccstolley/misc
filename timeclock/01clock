@@ -94,7 +94,10 @@ def calculate_daily_totals():
         elif last_event is None:
             print("No records to report.")
         else:
-            print("%s - still clocked in" % (clock_in_date.isoformat()))
+            now = int(time.time())
+            print("%s - %.1f (still clocked in)" % (
+                clock_in_date.isoformat(),
+                (now - clock_in_time) / (60.0 * 60)))
 
 
 def showhelp():
