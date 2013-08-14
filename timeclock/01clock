@@ -25,9 +25,9 @@ def parse_log_entry(ent):
 
 def last_log_entry():
     with open(TIMECLOCK_FILE, "r") as f:
-        data = f.readlines()[-1]
+        data = f.readlines()
     if data:
-        return parse_log_entry(data)
+        return parse_log_entry(data[-1])
     else:
         return parse_log_entry("OUT 21421123 google")
 
@@ -35,7 +35,7 @@ def last_log_entry():
 def multiple_logins():
     p = subprocess.Popen(['id', '-un'], stdout=subprocess.PIPE)
     myid = p.communicate()[0].strip()
-    p = subprocess.Popen(['w', '-hs', myid], stdout=subprocess.PIPE)
+    p = subprocess.Popen(['w', '-h', myid], stdout=subprocess.PIPE)
     output = p.communicate()[0].splitlines()
     return len(output) > 1
 
@@ -53,12 +53,12 @@ def clock_in():
         write_log("IN %d %s" % (now, stamp))
 
 
-def clock_out():
+def clock_out(force=False):
     now = int(time.time())
     stamp = datetime.datetime.now().isoformat()
     if last_log_entry()["event"] != "IN":
         print("ERROR: you must clock in before clocking out.")
-    elif multiple_logins():
+    elif force is not True and multiple_logins():
         print("INFO: Not clocking out, still logged in")
     else:
         write_log("OUT %d %s" % (int(now), stamp))
@@ -91,6 +91,8 @@ def calculate_daily_totals():
         if last_event == "OUT":
             print("%s - %.1f hours" % (clock_in_date.isoformat(),
                   date_total / (60.0 * 60)))
+        elif last_event is None:
+            print("No records to report.")
         else:
             print("%s - still clocked in" % (clock_in_date.isoformat()))
 
@@ -106,6 +108,9 @@ if __name__ == '__main__':
                           usage="%prog <comand> [options]")
     parser.add_option('-w', '--weeks-ago', action='store', nargs=1,
         help="Run reports starting WEEKS ago.", dest="weeks_ago", default=0)
+    parser.add_option('-f', '--force', action='store_true',
+        help="Force clock out even with multiple logins", dest="force",
+        default=False)
 
     options, args = parser.parse_args(sys.argv)
 
@@ -121,7 +126,9 @@ if __name__ == '__main__':
             cmd = args[1]
         try:
             if (cmd == 'report'):
-                funcs[cmd]()
+                funcs[cmd]()  # arguments added in the future
+            elif cmd == 'out':
+                funcs[cmd](options.force)
             else:
                 funcs[cmd]()
 
