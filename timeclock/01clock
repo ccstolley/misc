@@ -1,0 +1,129 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import time
+import os
+import datetime
+import subprocess
+from optparse import OptionParser
+
+__version__ = 0.05
+TIMECLOCK_FILE = "%s/.01timeclock" % os.environ['HOME']
+
+
+def write_log(data):
+    with open(TIMECLOCK_FILE, "a") as f:
+        f.write(data + "\n")
+
+
+def parse_log_entry(ent):
+    (event, epoch_time, stamp) = ent.split()
+    return {"event": event,
+            "timestamp": int(epoch_time),
+            "timestamp_dt": datetime.datetime.fromtimestamp(int(epoch_time)),
+            "timestamp_h": stamp}
+
+
+def last_log_entry():
+    with open(TIMECLOCK_FILE, "r") as f:
+        data = f.readlines()[-1]
+    if data:
+        return parse_log_entry(data)
+    else:
+        return parse_log_entry("OUT 21421123 google")
+
+
+def multiple_logins():
+    p = subprocess.Popen(['id', '-un'], stdout=subprocess.PIPE)
+    myid = p.communicate()[0].strip()
+    p = subprocess.Popen(['w', '-hs', myid], stdout=subprocess.PIPE)
+    output = p.communicate()[0].splitlines()
+    return len(output) > 1
+
+
+def clock_in():
+    now = int(time.time())
+    stamp = datetime.datetime.now().isoformat()
+    lle = last_log_entry()
+    if lle['event'] == 'IN':
+        secs_clocked_in = (now - lle['timestamp'])
+        if secs_clocked_in > (now + 60 * 60 * 5):
+            print ("WARNING: You are already clocked in for %d hours" %
+                   (secs_clocked_in / (60 * 60)))
+    else:
+        write_log("IN %d %s" % (now, stamp))
+
+
+def clock_out():
+    now = int(time.time())
+    stamp = datetime.datetime.now().isoformat()
+    if last_log_entry()["event"] != "IN":
+        print("ERROR: you must clock in before clocking out.")
+    elif multiple_logins():
+        print("INFO: Not clocking out, still logged in")
+    else:
+        write_log("OUT %d %s" % (int(now), stamp))
+
+
+def calculate_daily_totals():
+    with open(TIMECLOCK_FILE, "r") as f:
+        date_total = 0
+        current_date = None
+        last_event = None
+        for ent in f:
+            entry = parse_log_entry(ent)
+            if entry["event"] == "IN":
+                last_event = "IN"
+                clock_in_time = entry["timestamp"]
+                clock_in_date = entry["timestamp_dt"].date()
+                if clock_in_date != current_date:
+                    if current_date:
+                        print("%s - %.1f hours" % (current_date.isoformat(),
+                              date_total / (60.0 * 60)))
+                    date_total = 0
+                    current_date = clock_in_date
+            elif entry["event"] == "OUT":
+                last_event = "OUT"
+                clock_out_time = entry["timestamp"]
+                date_total += clock_out_time - clock_in_time
+            else:
+                print("Timeclock file parse error.")
+                raise SystemExit
+        if last_event == "OUT":
+            print("%s - %.1f hours" % (clock_in_date.isoformat(),
+                  date_total / (60.0 * 60)))
+        else:
+            print("%s - still clocked in" % (clock_in_date.isoformat()))
+
+
+def showhelp():
+    print("%s: in | out | report" % sys.argv[0])
+    raise SystemExit
+
+
+if __name__ == '__main__':
+    import sys
+    parser = OptionParser(version=__version__,
+                          usage="%prog <comand> [options]")
+    parser.add_option('-w', '--weeks-ago', action='store', nargs=1,
+        help="Run reports starting WEEKS ago.", dest="weeks_ago", default=0)
+
+    options, args = parser.parse_args(sys.argv)
+
+    funcs = {'in': clock_in,
+            'out': clock_out,
+            'report': calculate_daily_totals}
+    if (len(args) > 1) and args[1] not in funcs:
+        showhelp()
+    else:
+        if len(args) == 1:
+            cmd = 'report'
+        else:
+            cmd = args[1]
+        try:
+            if (cmd == 'report'):
+                funcs[cmd]()
+            else:
+                funcs[cmd]()
+
+        except IOError as e:
+            print("No timeclock file.")
