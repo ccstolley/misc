@@ -64,9 +64,13 @@ def clock_out(force=False):
         write_log("OUT %d %s" % (int(now), stamp))
 
 
-def calculate_daily_totals():
+def calculate_daily_totals(datestart, dateend):
+    if datestart is None:
+        datestart = datetime.date.today() - datetime.timedelta(days=7)
+        dateend = datetime.date.today()
     with open(TIMECLOCK_FILE, "r") as f:
         date_total = 0
+        all_time_total = 0
         current_date = None
         last_event = None
         for ent in f:
@@ -76,41 +80,51 @@ def calculate_daily_totals():
                 clock_in_time = entry["timestamp"]
                 clock_in_date = entry["timestamp_dt"].date()
                 if clock_in_date != current_date:
-                    if current_date:
+                    if current_date and ((current_date >= datestart) and 
+                                         (current_date <= dateend)):
                         print("%s - %.1f hours" % (current_date.isoformat(),
                               date_total / (60.0 * 60)))
+                    all_time_total += date_total
                     date_total = 0
                     current_date = clock_in_date
             elif entry["event"] == "OUT":
                 last_event = "OUT"
                 clock_out_time = entry["timestamp"]
-                date_total += clock_out_time - clock_in_time
+                if not (current_date >= datestart and
+                        current_date <= dateend):
+                    continue
+                else:
+                    date_total += clock_out_time - clock_in_time
             else:
                 print("Timeclock file parse error.")
                 raise SystemExit
-        if last_event == "OUT":
-            print("%s - %.1f hours" % (clock_in_date.isoformat(),
-                  date_total / (60.0 * 60)))
-        elif last_event is None:
-            print("No records to report.")
-        else:
-            now = int(time.time())
-            print("%s - %.1f (still clocked in)" % (
-                clock_in_date.isoformat(),
-                (now - clock_in_time) / (60.0 * 60)))
-
-
-def showhelp():
-    print("%s: in | out | report" % sys.argv[0])
-    raise SystemExit
+        if (current_date >= datestart and current_date <= dateend):
+            if last_event == "OUT":
+                print("%s - %.1f hours" % (clock_in_date.isoformat(),
+                      date_total / (60.0 * 60)))
+                all_time_total += date_total
+            elif last_event is None:
+                print("No records to report.")
+            else:
+                now = int(time.time())
+                print("%s - %.1f (still clocked in)" % (
+                    clock_in_date.isoformat(),
+                    (((now - clock_in_time) + date_total) / (60.0 * 60))))
+                all_time_total += (now - clock_in_time) + date_total
+        print("\n%.1f hours total between %s and %s" % (all_time_total/(60.0*60), 
+              datestart.isoformat(), dateend.isoformat()))
 
 
 if __name__ == '__main__':
     import sys
-    parser = OptionParser(version=__version__,
-                          usage="%prog <comand> [options]")
-    parser.add_option('-w', '--weeks-ago', action='store', nargs=1,
-        help="Run reports starting WEEKS ago.", dest="weeks_ago", default=0)
+    parser = OptionParser(version=__version__, usage="%prog <options>")
+    parser.add_option('-r', '--report', action='store', nargs=2,
+        help="Display list of hours between YYYYMMDD and YYYYMMDD",
+        dest="report", default=None)
+    parser.add_option('-i', '--in', action='store_true', dest="clockin",
+        help="Clock in", default=False)
+    parser.add_option('-o', '--out', action='store_true', dest="clockout",
+        help="Clock out", default=False)
     parser.add_option('-f', '--force', action='store_true',
         help="Force clock out even with multiple logins", dest="force",
         default=False)
@@ -120,20 +134,21 @@ if __name__ == '__main__':
     funcs = {'in': clock_in,
             'out': clock_out,
             'report': calculate_daily_totals}
-    if (len(args) > 1) and args[1] not in funcs:
-        showhelp()
-    else:
-        if len(args) == 1:
-            cmd = 'report'
+    if (not options.report and not options.clockin and not options.clockout):
+        if len(args) > 1:
+            parser.print_help()
         else:
-            cmd = args[1]
+            calculate_daily_totals(*(None, None))
+    elif (options.report):
+        fmt = "%Y%m%d"
         try:
-            if (cmd == 'report'):
-                funcs[cmd]()  # arguments added in the future
-            elif cmd == 'out':
-                funcs[cmd](options.force)
-            else:
-                funcs[cmd]()
-
-        except IOError as e:
-            print("No timeclock file.")
+            starttime = datetime.datetime.strptime(options.report[0], fmt)
+            endtime = datetime.datetime.strptime(options.report[1], fmt)
+        except Exception as e:
+            print("ERROR: Date ranges must be in YYYYMMDD format.")
+            raise SystemExit
+        calculate_daily_totals(*(starttime.date(), endtime.date()))
+    elif (options.clockout):
+        clock_out(options.force)
+    elif (options.clockin):
+        clock_in()
