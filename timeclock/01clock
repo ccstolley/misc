@@ -11,11 +11,17 @@ TIMECLOCK_FILE = "%s/.01timeclock" % os.environ['HOME']
 
 
 def write_log(data):
+    """
+    Write data to the timeclock log file.
+    """
     with open(TIMECLOCK_FILE, "a") as f:
         f.write(data + "\n")
 
 
 def parse_log_entry(ent):
+    """
+    Returns a dict of a timeclock log file entry.
+    """
     (event, epoch_time, stamp) = ent.split()
     return {"event": event,
             "timestamp": int(epoch_time),
@@ -24,6 +30,9 @@ def parse_log_entry(ent):
 
 
 def last_log_entry():
+    """
+    Returns the most recently added timeclock log file entry.
+    """
     with open(TIMECLOCK_FILE, "r") as f:
         data = f.readlines()
     if data:
@@ -33,6 +42,9 @@ def last_log_entry():
 
 
 def multiple_logins():
+    """
+    Checks if the current user is logged in multiple times. Returns a boolean.
+    """
     p = subprocess.Popen(['id', '-un'], stdout=subprocess.PIPE)
     myid = p.communicate()[0].strip()
     p = subprocess.Popen(['w', '-h', myid], stdout=subprocess.PIPE)
@@ -41,6 +53,10 @@ def multiple_logins():
 
 
 def clock_in():
+    """
+    Clocks in the current user so he can begin working. This starts
+    the timeclock.
+    """
     now = int(time.time())
     stamp = datetime.datetime.now().isoformat()
     lle = last_log_entry()
@@ -54,6 +70,11 @@ def clock_in():
 
 
 def clock_out(force=False):
+    """
+    Clocks out the current user so that he can stop working. A user
+    who is logged in multiple times will not clock out unless
+    force=True.
+    """
     now = int(time.time())
     stamp = datetime.datetime.now().isoformat()
     if last_log_entry()["event"] != "IN":
@@ -65,6 +86,11 @@ def clock_out(force=False):
 
 
 def calculate_daily_totals(datestart, dateend):
+    """
+    Calculates the hours worked for each day within the time spanned
+    by datestart and dateend. Prints results to stdout.
+    """
+
     if datestart is None:
         datestart = datetime.date.today() - datetime.timedelta(days=7)
         dateend = datetime.date.today()
