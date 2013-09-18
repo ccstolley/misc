@@ -1,4 +1,16 @@
 #!/usr/bin/env python
+"""
+Simple time keeping script for tracking time worked on a project.
+
+A particular project should have a dedicated user login. That user's
+.login and .logout files should have `01clock -i` and `01clock -o`
+respectively. Finally, that user's crontab should call the idle
+login killer script to prevent over-charging, like so:
+
+*/5  *  *  *  * /usr/local/sbin/kill_idle_logins
+
+"""
+
 from __future__ import print_function
 import time
 import os
@@ -31,7 +43,8 @@ def parse_log_entry(ent):
 
 def last_log_entry():
     """
-    Returns the most recently added timeclock log file entry.
+    Returns the most recently added timeclock log file entry. If
+    the logfile is empty, a bogus clockout entry is returned.
     """
     with open(TIMECLOCK_FILE, "r") as f:
         data = f.readlines()

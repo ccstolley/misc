@@ -1,0 +1,45 @@
+#!/usr/bin/perl 
+
+use strict;
+my $KILL_IDLE_MINUTES = 10;
+my $user = $ARGV[0] || `id -nu`;
+my $lowest_idle_minutes = undef;
+my @logins = split(/\n/, qx(w -hs $user));
+my @kills = ();
+my ($l, $login, $terminal, $where, $idle, $cmd, $min, $sec);
+
+foreach $l (@logins) {
+    ($login, $terminal, $where, $idle, $cmd) = split(/\s+/, $l);
+
+    if (($idle =~ /m/) || ($idle =~ /days/)) {
+            push(@kills, [$login, $terminal]);
+    } elsif ($idle =~ /s/) {
+        $lowest_idle_minutes = 0;
+        next;
+    } else { 
+        ($min, $sec) = split(/:/, $idle);
+            if (!defined($lowest_idle_minutes) || $min < $lowest_idle_minutes) {
+                $lowest_idle_minutes = $min;
+            }
+        if ($min > $KILL_IDLE_MINUTES) {
+            push(@kills, [$login, $terminal]);
+        }
+    }
+} 
+
+if ($lowest_idle_minutes > $KILL_IDLE_MINUTES) {
+    printf("Lowest: %d Kill: %d\n", $lowest_idle_minutes, $KILL_IDLE_MINUTES);
+    foreach my $key ( @kills) {
+        logoff(@$key);
+    }
+}
+
+
+
+sub logoff {
+    my $login = shift;
+    my $terminal = shift;
+    my $sleeptime = substr($terminal, 4);
+    sleep $sleeptime;
+    print qx(pkill -HUP -u $login -t $terminal);
+}
