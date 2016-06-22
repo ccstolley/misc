@@ -44,7 +44,7 @@ def ifconfig_cmd(args):
     return result.strip()
 
 
-def interface_statuses(interfaces, active_only=False):
+def wired_interface_statuses(interfaces, active_only=False):
     def get_link_status(res):
         gr = re.search("Link detected: (?P<link>.+)", res, re.MULTILINE)
         if gr:
@@ -59,6 +59,29 @@ def interface_statuses(interfaces, active_only=False):
                 results[iface] = status
     else:
         results = {iface: get_link_status(ethtool_cmd((iface, )))
+                   for iface in interfaces}
+    return results
+
+
+def wireless_interface_statuses(interfaces, active_only=False):
+    def get_link_status(res):
+        entry = [r for r in res.splitlines() if not r.startswith('Iface')]
+        if entry:
+            flags = entry[0].split()[10]
+            if 'U' in flags:  # interface is 'up'
+                return 'yes'
+            else:
+                return 'no'
+        else:
+            return None
+    results = {}
+    if active_only:
+        for iface in interfaces:
+            status = get_link_status(ifconfig_cmd(('-s', iface, )))
+            if status is not None:
+                results[iface] = status
+    else:
+        results = {iface: get_link_status(ifconfig_cmd(('-s', iface, )))
                    for iface in interfaces}
     return results
 
@@ -82,7 +105,7 @@ def configure_interface(iface):
 
 
 def auto_configure():
-    active_wired = interface_statuses(WIRED_INTERFACES, active_only=True)
+    active_wired = wired_interface_statuses(WIRED_INTERFACES, active_only=True)
     for iface, status in active_wired.items():
         if status == 'yes':
             # already configured, nothing to do
@@ -93,20 +116,23 @@ def auto_configure():
             configure_interface(iface)
             return iface
         else:
-            log.error("Skipping interface with unknown status: %s %s",
+            log.error("Skipping wired interface with unknown status: %s %s",
                       iface, status)
 
     # fall back to wireless
-    active_wless = interface_statuses(WIRELESS_INTERFACES, active_only=True)
+    active_wless = wireless_interface_statuses(WIRELESS_INTERFACES)
     for iface, status in active_wless.items():
         if status == 'yes':
             # already configured, nothing to do
             return iface
-        else:
-            # anything besides yes means configure it
+        elif status == 'no':
             disable_wired()
             configure_interface(iface)
             return iface
+        else:
+            log.error("Skipping wless interface with unknown status: %s %s",
+                      iface, status)
+
 
 def monitor():
     while 1:
