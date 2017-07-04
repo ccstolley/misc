@@ -1,0 +1,16 @@
+1980 BMW R65 6382271
+Vehicle code 0363
+Series 248
+Model R65
+Body type ohne
+Catalog model USA
+Production date 1980/04
+
+07/02/2017 - Spline lube, Replaced rear crank seal, oil pump o-ring and flywheel o-ring, gearbox oil
+    Splines were last lubricated maybe 2 years ago, most grease was gone. Molykote BR-2.
+    Gearbox oil replaced with BMW standard gear oil (hypoid GL5).
+
+06/02/2017 - Replaced right side pushrod tube seals, oil pressure switch
+
+02/15/2017 - Replaced left side pushrod tube seals
+
