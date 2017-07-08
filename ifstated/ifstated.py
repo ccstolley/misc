@@ -10,12 +10,12 @@ logging.getLogger(__name__).addHandler(logging.handlers.SysLogHandler('/dev/log'
 log = logging.getLogger(__name__)
 
 
-WIRELESS_INTERFACES = ('eth0', )
-WIRED_INTERFACES = ('eth1', 'eth2', 'eth3')
+WIRELESS_INTERFACES = ('wlan0', )
+WIRED_INTERFACES = ('eth0', 'eth1', 'eth2')
 ETHTOOL_CMD = subprocess.Popen(
     'which \ethtool', shell=True, stdout=subprocess.PIPE).communicate()[0].strip()
 DHCLIENT_CMD = subprocess.Popen(
-    'which \dhclient', shell=True, stdout=subprocess.PIPE).communicate()[0].strip()
+    'which \dhcpcd', shell=True, stdout=subprocess.PIPE).communicate()[0].strip()
 IFCONFIG_CMD = subprocess.Popen(
     'which \ifconfig', shell=True, stdout=subprocess.PIPE).communicate()[0].strip()
 
@@ -43,6 +43,12 @@ def ifconfig_cmd(args):
         stderr=subprocess.PIPE).communicate()
     return result.strip()
 
+def get_ip_address(res):
+    gr = re.search("inet (?P<ipaddr>[0-9.]+) ", res, re.MULTILINE)
+    if gr:
+        return gr.group('ipaddr')
+    else:
+        return None
 
 def wired_interface_statuses(interfaces, active_only=False):
     def get_link_status(res):
@@ -52,14 +58,17 @@ def wired_interface_statuses(interfaces, active_only=False):
         else:
             return None
     results = {}
-    if active_only:
-        for iface in interfaces:
-            status = get_link_status(ethtool_cmd((iface, )))
-            if status is not None:
-                results[iface] = status
-    else:
-        results = {iface: get_link_status(ethtool_cmd((iface, )))
-                   for iface in interfaces}
+    for iface in interfaces:
+        ifconfig_cmd((iface, 'up'))  # ensure interface is up
+        status = get_link_status(ethtool_cmd((iface, )))
+        ipaddr = get_ip_address(ifconfig_cmd((iface, )))
+        # yes = up and configured
+        # no = up but not configured
+        # None = not up, not configured
+        if all((status == 'yes', ipaddr)):
+            results[iface] = 'yes'
+        elif not active_only or status is not None:
+            results[iface] = 'no' if status == 'yes' else None
     return results
 
 
@@ -75,27 +84,26 @@ def wireless_interface_statuses(interfaces, active_only=False):
         else:
             return None
     results = {}
-    if active_only:
-        for iface in interfaces:
-            status = get_link_status(ifconfig_cmd(('-s', iface, )))
-            if status is not None:
-                results[iface] = status
-    else:
-        results = {iface: get_link_status(ifconfig_cmd(('-s', iface, )))
-                   for iface in interfaces}
+    for iface in interfaces:
+        status = get_link_status(ifconfig_cmd(('-s', iface, )))
+        ipaddr = get_ip_address(ifconfig_cmd((iface, )))
+        if status == 'yes' and ipaddr:
+            results[iface] = 'yes'
+        elif not active_only or status is not None:
+            results[iface] = 'no' if status else None
     return results
 
 
 def disable_wireless():
     log.info("Shutting down wireless")
     for iface in WIRELESS_INTERFACES:
-        dhclient_cmd(('-r', iface))
+        dhclient_cmd(('-k', iface))
 
 
 def disable_wired():
     log.info("Shutting down wired")
     for iface in WIRED_INTERFACES:
-        dhclient_cmd(('-r', iface))
+        dhclient_cmd(('-k', iface))
 
 
 def configure_interface(iface):
