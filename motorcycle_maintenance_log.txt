@@ -7,7 +7,7 @@ Catalog model USA
 Production date 1980/04
 
 08/19/2017 - Replace throttle bowden cables, replace carb fuel bowl
-             floats and float needles.
+             floats and float needles and diaphragms.
 
 07/02/2017 - Spline lube, Replaced rear crank seal, oil pump o-ring
              and flywheel o-ring, gearbox oil
@@ -23,4 +23,4 @@ Production date 1980/04
 2015-2016  - Replaced clutch plate
              Replaced final drive and rear differential gear oil.
              Replaced main jet needles and rebuilt carbs
-             Replaced ignitiion coils and wires
+             Replaced ignition coils and wires
