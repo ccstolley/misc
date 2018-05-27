@@ -6,6 +6,9 @@ Body type ohne
 Catalog model USA
 Production date 1980/04
 
+05/26/2018 - Crankcase oil change (Mobil 1 VTwin 20W50). Did not
+             renew oil filter or plug crush washer.
+
 04/19/2018 - Replace wiring harness for neutral switch and oil pressure sensor.
 
 08/19/2017 - Replace throttle bowden cables, replace carb fuel bowl
