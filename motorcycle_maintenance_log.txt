@@ -6,6 +6,9 @@ Body type ohne
 Catalog model USA
 Production date 1980/04
 
+06/02/2018 - Replaced taillight assembly, bled front brakes, checked
+             spark plug gap (0.6m L, 0.7mm R).
+
 05/26/2018 - [Mileage 47038] Crankcase oil change (Mobil 1 VTwin 20W50). Did not
              renew oil filter or plug crush washer.
 
