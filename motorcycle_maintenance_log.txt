@@ -6,6 +6,13 @@ Body type ohne
 Catalog model USA
 Production date 1980/04
 
+06/20/2018 - [Mileage 47285] Checked valve clearance, verified both
+             sides were still at 0.10 mm intake and 0.20 mm exhaust.
+             End play on both sides is OK.
+
+06/18/2018 - Replaced main wiring harness. Installed 20A fuse on
+             main electrical circuit. Replaced speedometer cable.
+
 06/02/2018 - Replaced taillight assembly, bled front brakes, checked
              spark plug gap (0.6m L, 0.7mm R).
 
