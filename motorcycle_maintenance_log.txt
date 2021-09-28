@@ -6,6 +6,9 @@ Body type ohne
 Catalog model USA
 Production date 1980/04
 
+07/18/2021 - [Mileage 50083] Changed oil (Liqui Moly mineral) and oil filter.
+             Changed transmission oil (Liqui Moly).
+
 07/13/2019 - Replaced front brake pads, pins and springs. EBC Organic.
              Bled brake lines.
 
